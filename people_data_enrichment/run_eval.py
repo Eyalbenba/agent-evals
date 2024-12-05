@@ -2,6 +2,7 @@ import argparse
 from typing import Optional
 
 from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langsmith import Client, evaluate
 from langsmith.evaluation import EvaluationResults
 from pydantic import BaseModel, Field
@@ -62,7 +63,7 @@ EVALUATION_PROMPT = f"""You are an evaluator tasked with assessing the accuracy 
 
 
 def evaluate_agent(outputs: dict, reference_outputs: dict):
-    if "info" not in outputs:
+    if "report" not in outputs:
         raise ValueError("Agent output must contain 'info' key")
 
     class Score(BaseModel):
@@ -94,19 +95,22 @@ def transform_dataset_inputs(inputs: dict) -> dict:
     """Transform LangSmith dataset inputs to match the agent's input schema before invoking the agent."""
     # see the `Example input` in the README for reference on what `inputs` dict should look like
     return {
-        "person": {
-            "name": inputs["name"],
-            "email": inputs["work_email"],
-            "linkedin": inputs["linkedin_profile"],
-        },
-        "extraction_schema": extraction_schema,
+        "query" : inputs["name"],
+        "research_context" : f"Work email: {inputs['work_email']} , Linkedin Profile: {inputs['linkedin_profile']}",
+        # "person": {
+        #     "name": inputs["name"],
+        #     "email": inputs["work_email"],
+        #     "linkedin": inputs["linkedin_profile"],
+        # },
+        # "extraction_schema": extraction_schema,
     }
 
 
 def transform_agent_outputs(outputs: dict) -> dict:
     """Transform agent outputs to match the LangSmith dataset output schema."""
     # see the `Example output` in the README for reference on what the output should look like
-    return {"info": outputs["info"]}
+    print(outputs)
+    return {"info": outputs["report"]}
 
 
 def make_agent_runner(graph_id: str, agent_url: str):
@@ -151,6 +155,7 @@ def run_eval(
 
 # Update main block
 if __name__ == "__main__":
+    print("Starting script...")
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--dataset-name",
