@@ -1,12 +1,10 @@
 import argparse
 from typing import Optional
-
 from langchain_anthropic import ChatAnthropic
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
 from langsmith import Client, evaluate
 from langsmith.evaluation import EvaluationResults
 from pydantic import BaseModel, Field
-
 from langgraph.pregel.remote import RemoteGraph
 
 # Defaults
@@ -109,7 +107,7 @@ def transform_dataset_inputs(inputs: dict) -> dict:
 def transform_agent_outputs(outputs: dict) -> dict:
     """Transform agent outputs to match the LangSmith dataset output schema."""
     # see the `Example output` in the README for reference on what the output should look like
-    print(outputs)
+    print(f"The Outputs are {outputs}")
     return {"info": outputs["report"]}
 
 
@@ -120,7 +118,17 @@ def make_agent_runner(graph_id: str, agent_url: str):
     def run_agent(inputs: dict) -> dict:
         """Run the agent on the inputs from the LangSmith dataset record, return outputs conforming to the LangSmith dataset output schema."""
         transformed_inputs = transform_dataset_inputs(inputs)
-        response = agent_graph.invoke(transformed_inputs)
+        print(f"Transformed inputs: {transformed_inputs}")
+
+        response = None  # Initialize response to avoid UnboundLocalError
+        try:
+            response = agent_graph.invoke(transformed_inputs)
+            print(f"Response: {response}")
+        except Exception as e:
+            print(f"Failed to invoke agent graph inputs: {e}")
+            # Handle the error or provide a default response
+            response = {"error": str(e)}
+
         return transform_agent_outputs(response)
 
     return run_agent
